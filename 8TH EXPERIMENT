@@ -1,0 +1,117 @@
+-- ===== MySQL Database Setup =====
+CREATE DATABASE webappdb;
+
+USE webappdb;
+
+-- Employee table
+CREATE TABLE Employee (
+    EmpID VARCHAR(10) PRIMARY KEY,
+    Name VARCHAR(50),
+    Salary DOUBLE
+);
+
+-- Attendance table
+CREATE TABLE Attendance (
+    StudentID VARCHAR(10),
+    Date DATE,
+    Status VARCHAR(10)
+);
+<!-- ===== login.html ===== -->
+<form action="login" method="post">
+  Username: <input name="username"><br>
+  Password: <input type="password" name="password"><br>
+  <input type="submit" value="Login">
+</form>
+
+<!-- ===== employees.html ===== -->
+<form action="employees" method="get">
+  Employee ID: <input name="empid">
+  <input type="submit" value="Search">
+</form>
+
+<!-- ===== attendance.jsp ===== -->
+<form action="attendance" method="post">
+  Student ID: <input name="studentId"><br>
+  Date: <input type="date" name="date"><br>
+  Status: <select name="status">
+    <option>Present</option>
+    <option>Absent</option>
+  </select><br>
+  <input type="submit" value="Submit">
+</form>
+<!-- ===== web.xml ===== -->
+<web-app>
+  <servlet>
+    <servlet-name>LoginServlet</servlet-name>
+    <servlet-class>com.example.web.LoginServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>LoginServlet</servlet-name>
+    <url-pattern>/login</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>EmployeeServlet</servlet-name>
+    <servlet-class>com.example.web.EmployeeServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>EmployeeServlet</servlet-name>
+    <url-pattern>/employees</url-pattern>
+  </servlet-mapping>
+
+  <servlet>
+    <servlet-name>AttendanceServlet</servlet-name>
+    <servlet-class>com.example.web.AttendanceServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>AttendanceServlet</servlet-name>
+    <url-pattern>/attendance</url-pattern>
+  </servlet-mapping>
+</web-app>
+// ===== LoginServlet.java =====
+package com.example.web;
+import java.io.*; import javax.servlet.*; import javax.servlet.http.*;
+public class LoginServlet extends HttpServlet {
+  protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    res.setContentType("text/html"); PrintWriter out=res.getWriter();
+    String u=req.getParameter("username"), p=req.getParameter("password");
+    if(u.equals("admin")&&p.equals("admin123"))
+      out.println("Welcome "+u+"<br><a href='employees.html'>Employees</a><br><a href='attendance.jsp'>Attendance</a>");
+    else out.println("Invalid! <a href='login.html'>Back</a>");
+  }
+}
+// ===== EmployeeServlet.java =====
+package com.example.web;
+import java.io.*; import java.sql.*; import javax.servlet.*; import javax.servlet.http.*;
+public class EmployeeServlet extends HttpServlet {
+  protected void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    res.setContentType("text/html"); PrintWriter out=res.getWriter();
+    try {
+      Connection c=DriverManager.getConnection("jdbc:mysql://localhost:3306/webappdb","root","yourpassword");
+      String empId=req.getParameter("empid");
+      PreparedStatement ps=(empId!=null&&!empId.isEmpty())?c.prepareStatement("SELECT * FROM Employee WHERE EmpID=?"):c.prepareStatement("SELECT * FROM Employee");
+      if(empId!=null&&!empId.isEmpty()) ps.setString(1,empId);
+      ResultSet rs=ps.executeQuery();
+      out.println("<table border=1><tr><th>EmpID</th><th>Name</th><th>Salary</th></tr>");
+      while(rs.next()) out.println("<tr><td>"+rs.getString("EmpID")+"</td><td>"+rs.getString("Name")+"</td><td>"+rs.getDouble("Salary")+"</td></tr>");
+      out.println("</table><a href='login.html'>Home</a>");
+    } catch(Exception e){out.println(e);}
+  }
+}
+// ===== AttendanceServlet.java =====
+package com.example.web;
+import java.io.*; import java.sql.*; import javax.servlet.*; import javax.servlet.http.*;
+public class AttendanceServlet extends HttpServlet {
+  protected void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException {
+    res.setContentType("text/html"); PrintWriter out=res.getWriter();
+    try {
+      Connection c=DriverManager.getConnection("jdbc:mysql://localhost:3306/webappdb","root","yourpassword");
+      PreparedStatement ps=c.prepareStatement("INSERT INTO Attendance(StudentID,Date,Status) VALUES(?,?,?)");
+      ps.setString(1,req.getParameter("studentId"));
+      ps.setString(2,req.getParameter("date"));
+      ps.setString(3,req.getParameter("status"));
+      ps.executeUpdate();
+      out.println("Attendance marked! <a href='login.html'>Home</a>");
+    } catch(Exception e){out.println(e);}
+  }
+}
